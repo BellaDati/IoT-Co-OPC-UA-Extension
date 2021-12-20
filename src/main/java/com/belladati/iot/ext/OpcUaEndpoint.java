@@ -1,8 +1,10 @@
 package com.belladati.iot.ext;
 
-import com.belladati.iot.collector.generic.receiver.endpoint.EndpointMessageProcessor;
-import com.belladati.iot.collector.generic.receiver.endpoint.ProcessedMessage;
-import com.belladati.iot.collector.generic.receiver.endpoint.ReceiverEndpoint;
+import com.belladati.iot.collector.common.Field;
+import com.belladati.iot.collector.common.FieldType;
+import com.belladati.iot.collector.receiver.endpoint.EndpointMessageProcessor;
+import com.belladati.iot.collector.receiver.endpoint.ProcessedMessage;
+import com.belladati.iot.collector.receiver.endpoint.ReceiverEndpoint;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
@@ -17,7 +19,9 @@ import org.apache.plc4x.java.api.types.PlcResponseCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -80,7 +84,7 @@ public class OpcUaEndpoint implements ReceiverEndpoint {
             try {
                 connectAndSetup();
                 if (this.plcConnection.isConnected()) {
-                    timerId = vertx.setPeriodic(config.getInteger("interval", 1000), v -> poll());
+                    timerId = vertx.setPeriodic(Math.round(Double.parseDouble(config.getString("interval", "1000"))), v -> poll());
                 }
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
@@ -98,11 +102,8 @@ public class OpcUaEndpoint implements ReceiverEndpoint {
             this.plcConnection = driverManager.getConnection(url); // "opcua:tcp://localhost:50000/?discovery=false"
             if (this.plcConnection.getMetadata().canRead()) {
                 this.builder = plcConnection.readRequestBuilder();
-                JsonObject mapping = config.getJsonObject("mapping");
+                JsonObject mapping = new JsonObject(config.getString("mapping","{}"));
                 mapping.forEach(e -> this.builder.addItem(e.getKey(), e.getValue().toString()));
-//            this.builder.addItem("one", "ns=2;s=RandomSignedInt32;DINT");
-//            this.builder.addItem("two", "ns=2;s=SlowUInt2;DINT");
-//            this.builder.addItem("three", "ns=2;s=65e451f1-56f1-ce84-a44f-6addf176beaf;STRING");
             } else {
                 this.plcConnection.close();
             }
@@ -133,7 +134,7 @@ public class OpcUaEndpoint implements ReceiverEndpoint {
                         response.add(plcReadResponse);
                     }
                 });
-                responseFuture.get(config.getInteger("interval")*10, TimeUnit.MILLISECONDS); // Wait 10times the interval
+                responseFuture.get(Math.round(Double.parseDouble(config.getString("interval", "1000")))*10, TimeUnit.MILLISECONDS); // Wait 10times the interval
             } catch (Throwable e) {
                 if (e instanceof TimeoutException) { // Make timeout reconnect upon next poll
                     try {
@@ -217,5 +218,14 @@ public class OpcUaEndpoint implements ReceiverEndpoint {
     @Override
     public String receiverName() {
         return "OPC UA";
+    }
+
+    @Override
+    public Map<String, Field> configurationFields() {
+        Map fields = new HashMap();
+        fields.put("interval", new Field("Interval", FieldType.NUMBER));
+        fields.put("url", new Field("URL", FieldType.TEXT));
+        fields.put("mapping", new Field("Mapping", FieldType.LONGTEXT));
+        return fields;
     }
 }
