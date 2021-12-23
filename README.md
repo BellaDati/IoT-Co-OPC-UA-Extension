@@ -8,14 +8,13 @@ docker run --rm -it -p 50000:50000 -p 8080:8080 --name opcplc mcr.microsoft.com/
 ```
 
 and endpoint config
+* URL: opcua:tcp://localhost:50000/?discovery=false
+* Interval: 1000  
+* Mapping:
 ```json
 {
-  "interval": 1000,
-  "url": "opcua:tcp://localhost:50000/?discovery=false",
-  "mapping": {
-    "one": "ns=2;s=RandomSignedInt32;DINT",
-    "two": "ns=2;s=SlowUInt2;DINT",
-    "three": "ns=2;s=65e451f1-56f1-ce84-a44f-6addf176beaf;STRING"
-  }
+"one": "ns=2;s=RandomSignedInt32;DINT",
+"two": "ns=2;s=SlowUInt2;DINT",
+"three": "ns=2;s=65e451f1-56f1-ce84-a44f-6addf176beaf;STRING"
 }
 ```
