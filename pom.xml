@@ -12,7 +12,7 @@
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
 
-        <version.plc4x>0.9.0</version.plc4x>
+        <version.plc4x>0.8.0</version.plc4x>
     </properties>
 
     <dependencies>
@@ -24,7 +24,7 @@
         <dependency>
             <groupId>org.apache.plc4x</groupId>
             <artifactId>plc4j-driver-opcua</artifactId>
-            <version>${version.plc4x}</version>
+            <version>0.8.1</version>
         </dependency>
 
         <!-- Dependencies that are provided by receiver JAR -->
@@ -32,7 +32,7 @@
             <groupId>org.apache.plc4x</groupId>
             <artifactId>plc4j-api</artifactId>
             <version>${version.plc4x}</version>
-            <scope>provided</scope>
+<!--            <scope>provided</scope>-->
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>

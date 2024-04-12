@@ -10,12 +10,14 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.plc4x.java.PlcDriverManager;
 import org.apache.plc4x.java.api.PlcConnection;
 import org.apache.plc4x.java.api.messages.PlcReadRequest;
 import org.apache.plc4x.java.api.messages.PlcReadResponse;
 import org.apache.plc4x.java.api.types.PlcResponseCode;
+import org.apache.plc4x.java.opcua.protocol.OpcuaField;
+import org.apache.plc4x.java.opcua.readwrite.types.OpcuaDataType;
+import org.apache.plc4x.java.opcua.readwrite.types.OpcuaIdentifierType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +28,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 /**
  * Sample implemenation of IOT API ReceiverEndpoint that consumes messages from OPC UA endpoint.
@@ -103,7 +106,7 @@ public class OpcUaEndpoint implements ReceiverEndpoint {
             if (this.plcConnection.getMetadata().canRead()) {
                 this.builder = plcConnection.readRequestBuilder();
                 JsonObject mapping = new JsonObject(config.getString("mapping","{}"));
-                mapping.forEach(e -> this.builder.addItem(e.getKey(), e.getValue().toString()));
+                mapping.forEach(e -> this.builder.addItem(e.getKey(), OpcuaField.of(e.getValue().toString())));
             } else {
                 this.plcConnection.close();
             }
@@ -125,6 +128,7 @@ public class OpcUaEndpoint implements ReceiverEndpoint {
                 if (!this.plcConnection.isConnected()) {
                     connectAndSetup();
                 }
+                log.info("OPC UA - Checking for messages");
 
                 CompletableFuture<? extends PlcReadResponse> responseFuture = this.builder.build().execute();
                 responseFuture.whenComplete((plcReadResponse, throwable) -> {
@@ -137,6 +141,7 @@ public class OpcUaEndpoint implements ReceiverEndpoint {
                 responseFuture.get(Math.round(Double.parseDouble(config.getString("interval", "1000")))*10, TimeUnit.MILLISECONDS); // Wait 10times the interval
             } catch (Throwable e) {
                 if (e instanceof TimeoutException) { // Make timeout reconnect upon next poll
+                    log.error("OPC UA - {}", e.getMessage());
                     try {
                         plcConnection.close();
                     } catch (Exception x) {
@@ -149,7 +154,7 @@ public class OpcUaEndpoint implements ReceiverEndpoint {
                 f.complete(response);
             }
         }, res -> {
-            if (!CollectionUtils.isEmpty((Set<PlcReadResponse>)res.result())) {
+            if (res.result() != null && !((Set<PlcReadResponse>)res.result()).isEmpty()) {
                 ProcessedMessage pm = endpointMessageProcessor.processMessage(getBody(((Set<PlcReadResponse>) res.result()).iterator().next()));
                 if (!pm.isError() && !pm.isIgnore()) {
                     endpointMessageProcessor.finishProcessing(pm);
@@ -180,10 +185,10 @@ public class OpcUaEndpoint implements ReceiverEndpoint {
                     }
                 }
             } else {
-                System.out.println(fieldName + ": " + response.getResponseCode(fieldName));
+                log.error(fieldName + ": " + response.getResponseCode(fieldName));
             }
         }
-        System.out.println(o.encodePrettily());
+        log.info(o.encodePrettily());
         return o;
     }
 
