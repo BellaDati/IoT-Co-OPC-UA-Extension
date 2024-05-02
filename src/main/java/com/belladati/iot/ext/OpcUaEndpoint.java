@@ -51,7 +51,7 @@ public class OpcUaEndpoint implements ReceiverEndpoint {
 
     private static final Logger log = LoggerFactory.getLogger(OpcUaEndpoint.class);
 
-    private static PlcDriverManager driverManager = new PlcDriverManager();
+    private PlcDriverManager driverManager = new PlcDriverManager();
     private PlcReadRequest.Builder builder;
 
     private Vertx vertx;
